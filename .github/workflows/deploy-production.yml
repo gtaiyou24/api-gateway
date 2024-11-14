@@ -1,0 +1,43 @@
+name: "🚀 Deploy: Production"
+run-name: 📌  <${{ inputs.deploy_to }}> 本番環境へ ${{ github.ref_name }} をデプロイ 🚀
+
+on:
+  # 手動トリガー
+  workflow_dispatch:
+    inputs:
+      deploy_to:
+        type: choice
+        description: Deploy to
+        default: all
+        options:
+          - all
+          - apigateway
+      approval:
+        description: 'type deploy/production'
+        required: true
+
+# 本番リリースワークフローを同時に実行できないようにコンカレンシーを使用
+concurrency: ${{ github.workflow }}
+
+jobs:
+  check-input:
+    runs-on: ubuntu-latest
+    name: '👀 リリースチェック'
+    steps:
+      - if: ${{ github.event.inputs.approval != 'deploy/production' }}
+        run: echo '::error ::`approval` に `deploy/production` と入力してください'; exit 1
+      - if: ${{ github.ref_name != 'main' }}
+        run: echo '::error ::`branch` は `main` を指定してください'; exit 1
+
+  deploy-apigateway:
+    if: ${{ (github.event.inputs.deploy_to == 'all') || (github.event.inputs.deploy_to == 'web') }}
+    name: '🚀 デプロイ'
+    uses: ./.github/workflows/_deploy-web-application.yml
+    with:
+      project-id: "プロジェクトID"
+      region: 'asia-northeast1'
+      workload-identity-provider: 'projects/プロジェクト番号/locations/global/workloadIdentityPools/github-actions-oidc/providers/github-actions-oidc-provider'
+      github-actions-service-account: 'github-actions@プロジェクト番号.iam.gserviceaccount.com'
+      cloud-run-name: 'api-gateway'
+      cloud-run-service-account: 'api-gateway@プロジェクト番号.iam.gserviceaccount.com'
+      cloud-run-min-instances: 0

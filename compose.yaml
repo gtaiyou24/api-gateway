@@ -1,0 +1,19 @@
+services:
+  # FastAPI
+  api:
+    build:
+      context: ./backend/src
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    env_file:
+      - ./backend/src/.env.local
+      #- ./backend/app/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/
+    command: "--reload"
+
+networks:
+  api-services:
+    external: true
